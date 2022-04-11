@@ -1,4 +1,4 @@
-# *Change Me*: Program 3- Koch curve
+# Program 3- Koch curve
 
 ### Program Designed to create a Koch Snowflake with recursive Fractal Calls using C++ and Postscript graphical language.
 
