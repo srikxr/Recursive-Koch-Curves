@@ -1,0 +1,55 @@
+name: Basic compile, code checks, and test run
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install missing software on ubuntu
+      run: |
+        sudo apt-get install clang-tidy clang-format valgrind
+#        sudo apt-get update
+#        sudo apt-get install curl
+#        sudo apt-get install clang-tidy cmake jq clang cppcheck
+
+    - name: code formatting suggestions
+      run: |
+        echo "*** running clang-format for formatting suggestions"
+        # Generate new .clang-format based on LLVM style
+        clang-format -style=llvm -dump-config >> .clang-format
+        for i in *.cpp; do
+          echo "*** formatting suggestions for $i"
+          clang-format "$i" | diff --unchanged-line-format="" --old-line-format=":%.3dn OLD: %L" --new-line-format=":    NEW: %L" "$i" -
+        done
+      continue-on-error: true
+
+    - name: code analysis
+      run: clang-tidy *.cpp -- -std=c++11
+
+    # Replace *.cpp with list of C++ files, if you use templates
+    - name: compile
+      run: g++ -g -std=c++11 -o myprog *.cpp
+
+    # Change the line below as needed. Remember to use input redirection.
+    - name: basic test
+      timeout-minutes: 2
+      run: ./myprog arg1 arg2 arg3
+
+    # Make sure that the program name below matches the compilation step
+    - name: memory leak test
+      run: |
+        echo "*** running valgrind to detect memory leaks"
+        valgrind --leak-check=full ./myprog > valgrind-out.txt 2>&1
+        # default NOLEAKMSG is for CSS Linux Lab 3.10.0-957.27.2.el7.x86_64
+        NOLEAKMSG="in use at exit: 0 bytes in 0 blocks"
+        grep "$NOLEAKMSG" valgrind-out.txt
+
